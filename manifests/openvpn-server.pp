@@ -170,6 +170,17 @@ class openvpn-server {
 		content => template("/home/ubuntu/puppet/templates/conf/openvpn/server.conf")
 	}
 
+	file { "/etc/network/interfaces":
+		ensure => present,
+		source => "/home/ubuntu/puppet/files/conf/network/interfaces"
+	}
+
+	exec { "network-restart": 
+		command => "/etc/init.d/networking restart",
+		refreshonly => true,
+		subscribe => File["/etc/network/interfaces"]
+	}
+
 }
 
 class { "openvpn-server": }

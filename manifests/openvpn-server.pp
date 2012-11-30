@@ -1,3 +1,37 @@
+# This creates client certificates in the OpenVPN SSL directory.
+class client-certificate ($username) {
+
+	exec { "genkey-client-$username":
+		creates => "/etc/openvpn/clients/$username.key",
+		require => File["/etc/openvpn/clients"],
+		command => "/usr/bin/openssl genrsa -out /etc/openvpn/clients/$username.key 2048"
+	}
+
+	file { "/etc/openvpn/clients/$username.csr.cnf":
+		require => File["/etc/openvpn/clients"],
+		ensure => present,
+		content => template("/home/ubuntu/puppet/templates/conf/openssl/client.conf")
+	}
+
+	exec { "gencsr-client-$username":
+		creates => "/etc/openvpn/clients/$username.csr",
+		require => File["/etc/openvpn/clients/$username.csr.cnf"],
+		command => "/usr/bin/openssl req -config /etc/openvpn/clients/$username.csr.cnf -new -key /etc/openvpn/clients/$username.key -out /etc/openvpn/clients/$username.csr"
+	}
+
+	exec { "sign-client-$username":
+		creates => "/etc/openvpn/clients/$username.pem",
+		require => [	
+			File["/etc/openvpn/clients/$username.csr.cnf"],
+			Exec["gencsr-client-$username"],
+			Exec["createca"]
+		],
+		command => "/usr/bin/openssl ca -batch -config /etc/puppetca/openssl.cnf -in /etc/openvpn/clients/$username.csr -out /etc/openvpn/clients/$username.pem"
+	}
+
+}
+
+
 class openvpn-server {
 
 	package { "openvpn": 
@@ -20,6 +54,11 @@ class openvpn-server {
                 owner => root,
                 group => root,
                 mode => 700,
+	}
+
+	file { "/etc/openvpn/clients":
+		ensure => directory,
+		require => File["/etc/openvpn"]
 	}
 
 	file { "/etc/puppetca":
@@ -121,7 +160,9 @@ class openvpn-server {
 		],
 		content => template("/home/ubuntu/puppet/templates/conf/openvpn/server.conf")
 	}
+
 }
 
 class { "openvpn-server": }
+class { "client-certificate": username => "client1" }
 

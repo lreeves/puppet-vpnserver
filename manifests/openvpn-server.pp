@@ -34,9 +34,8 @@ class client-certificate ($username) {
 
 class openvpn-server {
 
-	package { "openvpn": 
-		ensure => installed
-	}
+	package { "openvpn": ensure => installed }
+	package { "bridge-utils": ensure => installed }
 
 	file { "/etc/openvpn/ssl":
 		ensure => directory,
@@ -54,6 +53,16 @@ class openvpn-server {
                 owner => root,
                 group => root,
                 mode => 700,
+	}
+
+	file { "/etc/openvpn/up.sh":
+		ensure => present,
+		source => "/home/ubuntu/puppet/files/conf/openvpn/up.sh"
+	}
+
+	file { "/etc/openvpn/down.sh":
+		ensure => present,
+		source => "/home/ubuntu/puppet/files/conf/openvpn/down.sh"
 	}
 
 	file { "/etc/openvpn/clients":

@@ -186,8 +186,16 @@ class openvpn-server {
 		subscribe => File["/etc/network/interfaces"]
 	}
 
+	exec { "gen-ta-key":
+		command => "/usr/sbin/openvpn --genkey --secret /etc/openvpn/ta.key",
+		creates => "/etc/openvpn/ta.key"
+	}
+
 	service { "openvpn":
-		require => Exec["create-dh"]
+		require => [ 
+			Exec["create-dh"],
+			Exec["gen-ta-key"]
+		]
 	}
 
 }

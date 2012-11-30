@@ -65,6 +65,11 @@ class openvpn-server {
 		source => "/home/ubuntu/puppet/files/conf/openvpn/down.sh"
 	}
 
+	exec { "create-dh":
+		creates => "/etc/openvpn/dh1024.pem",
+		command => "/usr/bin/openssl dhparam -out /etc/openvpn/dh1024.pem 1024"
+	}
+
 	file { "/etc/openvpn/clients":
 		ensure => directory,
 		require => File["/etc/openvpn"]
@@ -179,6 +184,10 @@ class openvpn-server {
 		command => "/etc/init.d/networking restart",
 		refreshonly => true,
 		subscribe => File["/etc/network/interfaces"]
+	}
+
+	service { "openvpn":
+		require => Exec["create-dh"]
 	}
 
 }

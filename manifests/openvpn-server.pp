@@ -1,5 +1,5 @@
 # This creates client certificates in the OpenVPN SSL directory.
-class client-certificate ($username) {
+class client-package ($username) {
 
 	exec { "genkey-client-$username":
 		creates => "/etc/openvpn/clients/$username.key",
@@ -27,6 +27,12 @@ class client-certificate ($username) {
 			Exec["createca"]
 		],
 		command => "/usr/bin/openssl ca -batch -config /etc/puppetca/openssl.cnf -in /etc/openvpn/clients/$username.csr -out /etc/openvpn/clients/$username.pem"
+	}
+
+	file { "/etc/openvpn/clients/$username.ovpn":
+		require => File["/etc/openvpn/clients"],
+		ensure => present,
+		content => template("/home/ubuntu/puppet/templates/conf/openvpn/client.conf")
 	}
 
 }
@@ -188,18 +194,25 @@ class openvpn-server {
 
 	exec { "gen-ta-key":
 		command => "/usr/sbin/openvpn --genkey --secret /etc/openvpn/ta.key",
-		creates => "/etc/openvpn/ta.key"
+		creates => "/etc/openvpn/ta.key",
+		require => Package["openvpn"]
 	}
 
 	service { "openvpn":
+		enable => true,
+		ensure => running,
 		require => [ 
 			Exec["create-dh"],
-			Exec["gen-ta-key"]
+			Exec["gen-ta-key"],
+			File["/etc/openvpn/server.conf"]
+		],
+		subscribe => [
+			File["/etc/openvpn/server.conf"]
 		]
 	}
 
 }
 
 class { "openvpn-server": }
-class { "client-certificate": username => "client1" }
+class { "client-package": username => "client1" }
 

@@ -10,7 +10,7 @@ class client-package ($username) {
 	file { "/etc/openvpn/clients/$username.csr.cnf":
 		require => File["/etc/openvpn/clients"],
 		ensure => present,
-		content => template("/home/ubuntu/puppet/templates/conf/openssl/client.conf")
+		content => template("/home/ubuntu/puppet-vpnserver/templates/conf/openssl/client.conf")
 	}
 
 	exec { "gencsr-client-$username":
@@ -21,7 +21,7 @@ class client-package ($username) {
 
 	exec { "sign-client-$username":
 		creates => "/etc/openvpn/clients/$username.pem",
-		require => [	
+		require => [
 			File["/etc/openvpn/clients/$username.csr.cnf"],
 			Exec["gencsr-client-$username"],
 			Exec["createca"]
@@ -32,7 +32,7 @@ class client-package ($username) {
 	file { "/etc/openvpn/clients/$username.ovpn":
 		require => File["/etc/openvpn/clients"],
 		ensure => present,
-		content => template("/home/ubuntu/puppet/templates/conf/openvpn/client.conf")
+		content => template("/home/ubuntu/puppet-vpnserver/templates/conf/openvpn/client.conf")
 	}
 
 }
@@ -48,7 +48,7 @@ class openvpn-server {
 		owner => root,
 		group => root,
 		mode => 700,
-		require => [ 
+		require => [
 			Package["openvpn"],
 			File["/etc/openvpn"]
 		]
@@ -63,12 +63,12 @@ class openvpn-server {
 
 	file { "/etc/openvpn/up.sh":
 		ensure => present,
-		source => "/home/ubuntu/puppet/files/conf/openvpn/up.sh"
+		source => "/home/ubuntu/puppet-vpnserver/files/conf/openvpn/up.sh"
 	}
 
 	file { "/etc/openvpn/down.sh":
 		ensure => present,
-		source => "/home/ubuntu/puppet/files/conf/openvpn/down.sh"
+		source => "/home/ubuntu/puppet-vpnserver/files/conf/openvpn/down.sh"
 	}
 
 	exec { "create-dh":
@@ -99,7 +99,7 @@ class openvpn-server {
 		replace => "false"
 	}
 
-	file { "/etc/puppetca/certs": 
+	file { "/etc/puppetca/certs":
 		ensure => directory,
 		require => File["/etc/puppetca"]
 	}
@@ -114,7 +114,7 @@ class openvpn-server {
 		owner => root,
 		group => root,
 		mode => 600,
-		source => "/home/ubuntu/puppet/files/conf/openssl/my.conf",
+		source => "/home/ubuntu/puppet-vpnserver/files/conf/openssl/my.conf",
 		require => File["/etc/puppetca"]
 	}
 
@@ -123,7 +123,7 @@ class openvpn-server {
 		owner => root,
 		group => root,
 		mode => 600,
-		source => "/home/ubuntu/puppet/files/conf/openssl/openvpn.conf",
+		source => "/home/ubuntu/puppet-vpnserver/files/conf/openssl/openvpn.conf",
 		require => File["/etc/puppetca"]
 	}
 
@@ -174,19 +174,19 @@ class openvpn-server {
 
 	file { "/etc/openvpn/server.conf":
 		ensure => present,
-		require => [ 
+		require => [
 			File["/etc/puppetca/certs/ca.pem"],
 			Package["openvpn"]
 		],
-		content => template("/home/ubuntu/puppet/templates/conf/openvpn/server.conf")
+		content => template("/home/ubuntu/puppet-vpnserver/templates/conf/openvpn/server.conf")
 	}
 
 	file { "/etc/network/interfaces":
 		ensure => present,
-		source => "/home/ubuntu/puppet/files/conf/network/interfaces"
+		source => "/home/ubuntu/puppet-vpnserver/files/conf/network/interfaces"
 	}
 
-	exec { "network-restart": 
+	exec { "network-restart":
 		command => "/etc/init.d/networking restart",
 		refreshonly => true,
 		subscribe => File["/etc/network/interfaces"]
@@ -201,7 +201,7 @@ class openvpn-server {
 	service { "openvpn":
 		enable => true,
 		ensure => running,
-		require => [ 
+		require => [
 			Exec["create-dh"],
 			Exec["gen-ta-key"],
 			File["/etc/openvpn/server.conf"]
